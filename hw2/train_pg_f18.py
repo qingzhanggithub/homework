@@ -38,7 +38,9 @@ def build_mlp(input_placeholder, output_size, scope, n_layers, size, activation=
         Hint: use tf.layers.dense    
     """
     # YOUR CODE HERE
-    raise NotImplementedError
+    Y = tf.layers.dense(input_placeholder, size, activation = activation)    
+    output_placeholder = tf.layers.dense(Y, 3)
+    
     return output_placeholder
 
 def pathlength(path):
