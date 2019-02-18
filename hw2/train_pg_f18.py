@@ -36,10 +36,12 @@ def build_mlp(input_placeholder, output_size, scope, n_layers, size, activation=
             output placeholder of the network (the result of a forward pass) 
 
         Hint: use tf.layers.dense    
+
+        Additional references: https://www.youtube.com/watch?v=t1A3NTttvBA&t=1287s
     """
     # YOUR CODE HERE
     Y = tf.layers.dense(input_placeholder, size, activation = activation)    
-    output_placeholder = tf.layers.dense(Y, 3)
+    output_placeholder = tf.layers.dense(Y, self.ac_dim)
     
     return output_placeholder
 
@@ -104,7 +106,7 @@ class Agent(object):
         else:
             sy_ac_na = tf.placeholder(shape=[None, self.ac_dim], name="ac", dtype=tf.float32) 
         # YOUR CODE HERE
-        sy_adv_n = None
+        sy_adv_n = tf.placeholder(shape = [None])
         return sy_ob_no, sy_ac_na, sy_adv_n
 
 
@@ -136,15 +138,15 @@ class Agent(object):
                 Pass in self.n_layers for the 'n_layers' argument, and
                 pass in self.size for the 'size' argument.
         """
-        raise NotImplementedError
+        output_logits = build_mlp(sys_ob_no, n_layers = self.n_layers, size = self.sizes)
         if self.discrete:
             # YOUR_CODE_HERE
-            sy_logits_na = None
+            sy_logits_na =  output_logits
             return sy_logits_na
         else:
             # YOUR_CODE_HERE
-            sy_mean = None
-            sy_logstd = None
+            sy_mean = output_logits
+            _, sy_logstd = tf.nn.moments(output_logits, axes= [0])
             return (sy_mean, sy_logstd)
 
     #========================================================================================#
@@ -174,15 +176,18 @@ class Agent(object):
         
                  This reduces the problem to just sampling z. (Hint: use tf.random_normal!)
         """
-        raise NotImplementedError
+        
         if self.discrete:
             sy_logits_na = policy_parameters
             # YOUR_CODE_HERE
-            sy_sampled_ac = None
+            sy_sampled_ac = tf.random.multinomial(sy_logits_na, num_samples= 1, seed= 41)
         else:
             sy_mean, sy_logstd = policy_parameters
             # YOUR_CODE_HERE
-            sy_sampled_ac = None
+            # TODO may not work, need verify
+            z_ac = tf.random_normal(shape = tf.shape(sy_logstd), mean = tf.zeros_like(sy_logstd), stddev = tf.ones_like(sy_logstd), dtype = tf.fload32)
+            sy_sampled_ac = tf.add(sy_mean, tf.mul(sy_logstd, z_ac))
+ 
         return sy_sampled_ac
 
     #========================================================================================#
@@ -215,7 +220,8 @@ class Agent(object):
         if self.discrete:
             sy_logits_na = policy_parameters
             # YOUR_CODE_HERE
-            sy_logprob_n = None
+            logprob_all = tf.log(tf.nn_softmax(sy_logits_na))
+            sy_logprob_n = logprob_all[:, sy_ac_na]
         else:
             sy_mean, sy_logstd = policy_parameters
             # YOUR_CODE_HERE
